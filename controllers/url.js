@@ -1,5 +1,5 @@
 const shortId = require("shortid");
-const URL = require("../models/url");
+const URL = require("../models/urlSchema");
 async function handleGenerateNewShortURL(req, res) {
   const body = req.body;
   if (!body.url) return res.status(400).json({ msg: "url not found" });
@@ -8,6 +8,7 @@ async function handleGenerateNewShortURL(req, res) {
     shortId: short_id,
     redirectUrl: body.url,
     visitedHistory: [],
+    createdBy:req.user._id
   });
   return res.render("home", {
     id: short_id,

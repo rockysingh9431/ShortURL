@@ -1,10 +1,11 @@
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const path = require("path");
 const { connectToMongoDB } = require("./connect");
 const urlRouter = require("./routes/urlRouter");
 const staticRouter = require("./routes/staticRouter");
-const userRouter=require("./routes/userRouter");
-
+const userRouter = require("./routes/userRouter");
+const { checkForAuthentication, restrictTo } = require("./middlewares/auth");
 // Connection to MongoDB
 connectToMongoDB();
 
@@ -19,7 +20,20 @@ const app = express();
 // Definig the port number on which our server is listening
 const PORT = 8001;
 
+/* This line sets the view engine to EJS (Embedded JavaScript). EJS is a templating engine
+  that allows you to embed JavaScript code within your HTML templates, making it easier
+  to generate dynamic content on the server side.
+ */
+app.set("view engine", "ejs");
+
+/* Here, the code sets the directory where the application will look for views (templates).
+ path.resolve("./views") resolves the path to the "views" directory in the project's
+root directory. This line tells Express to look for EJS templates in the "views" directory.
+*/
+
+app.set("views", path.resolve("./views"));
 /*
+
   app.use(express.json());: This line adds middleware to parse incoming requests with JSON payloads. When a 
   client sends a request with a JSON payload (typically in the body of a POST or PUT request), this middleware
   parses the JSON data and makes it available in the req.body property of the request object. It allows your Express
@@ -34,29 +48,17 @@ app.use(express.json());
   querystring library. If you set extended: true, it would use the qs library instead
 */
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(checkForAuthentication);
+//handle requests that match the path "/url" or any subpaths under "/url" and invokes the urlRouter
+app.use("/url", restrictTo(["NORMAL", "ADMIN"]), urlRouter);
 
-/* This line sets the view engine to EJS (Embedded JavaScript). EJS is a templating engine
-  that allows you to embed JavaScript code within your HTML templates, making it easier
-  to generate dynamic content on the server side.
- */
-app.set("view engine", "ejs");
-
-/* Here, the code sets the directory where the application will look for views (templates).
- path.resolve("./views") resolves the path to the "views" directory in the project's
-root directory. This line tells Express to look for EJS templates in the "views" directory.
-*/
-
-app.set("views", path.resolve("./views"));
+//handle requests that match the path "/user" or any subpaths under "/user" and invokes the userRouter
+app.use("/user", userRouter);
 
 // This line uses a route called staticRouter for handling requests to the root URL ("/"). The staticRouter is likely
 // responsible for serving static files (like CSS, images, or client-side JavaScript) from a specific directory.
 app.use("/", staticRouter);
-
-//handle requests that match the path "/url" or any subpaths under "/url" and invokes the urlRouter
-app.use("/url", urlRouter);
-
-//handle requests that match the path "/user" or any subpaths under "/user" and invokes the userRouter
-app.use("/user",userRouter);
 
 // Listening on port 8001
 app.listen(PORT, () => {

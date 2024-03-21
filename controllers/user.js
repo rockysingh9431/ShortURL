@@ -1,4 +1,6 @@
-const USER = require("../models/user");
+const USER = require("../models/userSchema");
+// const { v4: uuidv4 } = require("uuid");
+const { setUser } = require("../service/auth");
 async function handleUserSignUp(req, res) {
   const { name, email, password } = req.body;
   await USER.create({
@@ -6,18 +8,20 @@ async function handleUserSignUp(req, res) {
     email,
     password,
   });
-  return res.render("home");
+  return res.redirect("/login");
 }
 
 async function handleUserLogIn(req, res) {
   const { email, password } = req.body;
-  const user = await USER.findOne({ email });
+  const user = await USER.findOne({ email, password });
 
   if (!user) return res.redirect("/login");
 
-  if (user.password === password) return res.redirect("home");
+  // const sessionId = uuidv4();
+  const token = setUser(user);
+  res.cookie("token", token);
+  return res.redirect("/");
 }
-
 module.exports = {
   handleUserSignUp,
   handleUserLogIn,
